@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="boxTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <rect x="3" y="3" width="58" height="58" rx="11" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.3"/>
+  <!-- Isometric box -->
+  <polygon points="32,16 48,25 32,34 16,25" fill="url(#boxTop)" stroke="#064e3b" stroke-width="1"/>
+  <polygon points="16,25 32,34 32,48 16,39" fill="#059669" stroke="#064e3b" stroke-width="1"/>
+  <polygon points="32,34 48,25 48,39 32,48" fill="#047857" stroke="#064e3b" stroke-width="1"/>
+  <!-- Sync badge -->
+  <circle cx="46" cy="18" r="9" fill="#2563eb"/>
+  <path d="M43 17 A4 4 0 1 1 47 21" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <polygon points="46.5,14 49,17.5 44,17.5" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inventory">
+  <meta name="description" content="100% Free Offline-First Inventory System synced to Google Sheets">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <title>Offline Inventory System</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top App Navigation -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>StockFlow</h1>
+          <span class="brand-subtitle">Offline-First Inventory</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Online / Offline Pill -->
+        <div id="connectionStatus" class="status-pill status-online" title="Network status">
+          <span class="status-dot"></span>
+          <span id="connectionText" class="status-label">Online</span>
+        </div>
+
+        <!-- Settings Button -->
+        <button id="openSettingsBtn" class="icon-button" title="Settings & API" aria-label="Open Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Missing API Warning Banner -->
+    <div id="apiConfigBanner" class="banner banner-notice hidden">
+      <div class="banner-content">
+        <svg class="banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>Google Sheets API URL is not set. Submissions will queue locally until configured.</span>
+      </div>
+      <button id="bannerConfigBtn" class="btn-sm btn-outline">Set URL</button>
+    </div>
+
+    <!-- Sync Queue Card / Bar -->
+    <div class="sync-bar card">
+      <div class="sync-info">
+        <span class="sync-badge" id="syncBadge">0 pending</span>
+        <span class="sync-text" id="syncStatusSummary">All entries synced to cloud</span>
+      </div>
+      <button id="manualSyncBtn" class="btn-sync" title="Sync now">
+        <svg id="syncIcon" class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        <span>Sync</span>
+      </button>
+    </div>
+
+    <!-- Main Inventory Form Card -->
+    <main class="form-card card">
+      <form id="inventoryForm" autocomplete="off" novalidate>
+        
+        <!-- Product Name Input -->
+        <div class="form-group">
+          <label for="productName" class="form-label">
+            <span>Product Name</span>
+            <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+              <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            <input 
+              type="text" 
+              id="productName" 
+              name="productName" 
+              placeholder="e.g. Engine Oil 10W-40, Filter A12" 
+              list="productSuggestions" 
+              required
+              autocapitalize="words"
+            >
+            <button type="button" id="clearProductBtn" class="input-clear-btn" title="Clear input" style="display: none;">&times;</button>
+          </div>
+          <datalist id="productSuggestions"></datalist>
+        </div>
+
+        <!-- Quantity Input with Stepper Controls -->
+        <div class="form-group">
+          <label for="quantity" class="form-label">
+            <span>Quantity</span>
+            <span class="required-star">*</span>
+          </label>
+          <div class="quantity-control">
+            <button type="button" id="qtyMinusBtn" class="qty-btn" aria-label="Decrease quantity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <input 
+              type="number" 
+              id="quantity" 
+              name="quantity" 
+              value="1" 
+              min="1" 
+              step="1" 
+              required
+              inputmode="numeric"
+            >
+            <button type="button" id="qtyPlusBtn" class="qty-btn" aria-label="Increase quantity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Quick Quantity Buttons -->
+          <div class="qty-quick-buttons">
+            <button type="button" class="quick-qty-chip" data-qty="1">+1</button>
+            <button type="button" class="quick-qty-chip" data-qty="5">+5</button>
+            <button type="button" class="quick-qty-chip" data-qty="10">+10</button>
+            <button type="button" class="quick-qty-chip" data-qty="50">+50</button>
+            <button type="button" class="quick-qty-chip" data-qty="100">+100</button>
+          </div>
+        </div>
+
+        <!-- Stock Action Type (Toggle Buttons) -->
+        <div class="form-group">
+          <label class="form-label">
+            <span>Action Type</span>
+            <span class="required-star">*</span>
+          </label>
+          <div class="action-toggle-group">
+            <label class="action-toggle-btn active" id="labelStockIn">
+              <input type="radio" name="actionType" value="Stock IN (NEW)" checked>
+              <span class="action-btn-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 5v14M5 12l7 7 7-7"/>
+                </svg>
+                <span class="btn-title">Stock IN (NEW)</span>
+              </span>
+            </label>
+
+            <label class="action-toggle-btn" id="labelStockOut">
+              <input type="radio" name="actionType" value="Stock OUT">
+              <span class="action-btn-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 19V5M5 12l7-7 7 7"/>
+                </svg>
+                <span class="btn-title">Stock OUT</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Conditional Stock OUT Section (PETRONAS / PICK-UP / Courier) -->
+        <div id="stockOutOptions" class="stock-out-section slide-down-container hidden">
+          <div class="section-divider">
+            <span>Stock OUT Options</span>
+          </div>
+
+          <label class="form-label">
+            <span>Select Destination / Delivery Method</span>
+            <span class="required-star">*</span>
+          </label>
+
+          <div class="destination-grid">
+            <label class="destination-card">
+              <input type="radio" name="destination" value="PETRONAS">
+              <div class="card-inner">
+                <div class="dest-icon petronas-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 22h12M4 9h10M4 22V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v18"/>
+                    <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>
+                  </svg>
+                </div>
+                <span class="dest-title">PETRONAS</span>
+                <span class="dest-subtitle">Station Delivery</span>
+              </div>
+            </label>
+
+            <label class="destination-card active">
+              <input type="radio" name="destination" value="PICK-UP" checked>
+              <div class="card-inner">
+                <div class="dest-icon pickup-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <span class="dest-title">PICK-UP</span>
+                <span class="dest-subtitle">Self Collect</span>
+              </div>
+            </label>
+
+            <label class="destination-card">
+              <input type="radio" name="destination" value="Courier">
+              <div class="card-inner">
+                <div class="dest-icon courier-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="3" width="15" height="13"/>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                    <circle cx="5.5" cy="18.5" r="2.5"/>
+                    <circle cx="18.5" cy="18.5" r="2.5"/>
+                  </svg>
+                </div>
+                <span class="dest-title">Courier</span>
+                <span class="dest-subtitle">+RM0.50 / unit</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Dynamic Courier Fee Display Banner -->
+          <div id="courierFeeBanner" class="fee-banner hidden">
+            <div class="fee-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div>
+                <div class="fee-formula">
+                  <span>Courier Handling Fee:</span>
+                  <strong>RM 0.50 &times; <span id="feeQtyCalc">1</span></strong>
+                </div>
+                <span class="fee-note">Auto-calculated per unit dispatched</span>
+              </div>
+            </div>
+            <div class="fee-total">
+              <span class="fee-label">Total Fee</span>
+              <span class="fee-amount" id="totalCourierFeeDisplay">RM 0.50</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn" class="btn-submit btn-stock-in">
+          <span class="btn-submit-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>
+          <span id="submitBtnText">Record Stock IN (1)</span>
+        </button>
+
+      </form>
+    </main>
+
+    <!-- Recent Transactions Section -->
+    <section class="history-card card">
+      <div class="history-header">
+        <div class="history-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <h2>Recent Activity</h2>
+        </div>
+        <div class="history-actions">
+          <button id="clearHistoryBtn" class="btn-ghost" title="Clear locally stored history">Clear</button>
+        </div>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <!-- Rendered dynamically -->
+        <div class="history-empty" id="historyEmpty">
+          <p>No inventory records yet.</p>
+          <span>Submitted items will show here and automatically sync to Google Sheets.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Information -->
+    <footer class="app-footer">
+      <p>100% Free &amp; Offline-First &bull; Stored locally &bull; Synced with Google Sheets</p>
+    </footer>
+  </div>
+
+  <!-- Settings & Configuration Modal -->
+  <div id="settingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="settingsTitle">Settings &amp; Google Sheet API</h3>
+        <button id="closeSettingsBtn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="apiUrlInput" class="form-label">
+            <span>Google Apps Script Web App URL</span>
+          </label>
+          <input 
+            type="url" 
+            id="apiUrlInput" 
+            placeholder="https://script.google.com/macros/s/.../exec"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="field-hint">
+            The URL generated after deploying your Google Sheet script as a <strong>Web App (Access: Anyone)</strong>.
+          </p>
+        </div>
+
+        <div class="test-connection-wrapper">
+          <button type="button" id="testApiBtn" class="btn-outline">
+            <span id="testApiBtnText">Test API Connection</span>
+          </button>
+          <div id="testApiFeedback" class="test-feedback hidden"></div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <div class="setup-quick-guide">
+          <h4>Quick Google Sheets Setup Guide</h4>
+          <ol>
+            <li>Open a new <a href="https://sheets.new" target="_blank" rel="noopener">Google Sheet</a>.</li>
+            <li>Go to <strong>Extensions &gt; Apps Script</strong>.</li>
+            <li>Copy &amp; paste the code from <code>google-apps-script/Code.gs</code>.</li>
+            <li>Click <strong>Deploy &gt; New deployment</strong>.</li>
+            <li>Select <strong>Web app</strong>, execute as <em>Me</em>, and access as <em>Anyone</em>.</li>
+            <li>Copy the Web App URL and paste it above!</li>
+          </ol>
+        </div>
+
+        <hr class="modal-divider">
+
+        <div class="modal-danger-zone">
+          <button type="button" id="resetQueueBtn" class="btn-danger-outline">
+            Force Clear Offline Queue
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="cancelSettingsBtn" class="btn-ghost">Cancel</button>
+        <button type="button" id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Application Logic -->
+  <script src="./app.js"></script>
+</body>
+</html>
